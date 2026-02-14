@@ -802,6 +802,7 @@
             // Variables for crop selection dragging
             let isMovingSelection = false;
             let lastMousePos = { x: 0, y: 0 };
+            let mouseOffset = { x: 0, y: 0 }; // Mouse offset within the selection
             
             // Check if mouse is inside crop selection
             function isMouseInsideSelection(x, y) {
@@ -831,6 +832,13 @@
                     // Start moving the selection
                     isMovingSelection = true;
                     lastMousePos = { x: mouseX, y: mouseY };
+                    
+                    // Calculate mouse offset within the selection
+                    const selectionX = Math.min(cropStart.x, cropEnd.x);
+                    const selectionY = Math.min(cropStart.y, cropEnd.y);
+                    mouseOffset.x = mouseX - selectionX;
+                    mouseOffset.y = mouseY - selectionY;
+                    
                     canvas.style.cursor = 'move';
                 } else {
                     // Start new selection
@@ -855,15 +863,42 @@
                 const mouseY = (e.clientY - rect.top) * scaleY;
                 
                 if (isMovingSelection) {
-                    // Calculate movement delta
-                    const deltaX = mouseX - lastMousePos.x;
-                    const deltaY = mouseY - lastMousePos.y;
+                    // Get current selection dimensions
+                    const currentX = Math.min(cropStart.x, cropEnd.x);
+                    const currentY = Math.min(cropStart.y, cropEnd.y);
+                    const currentWidth = Math.abs(cropEnd.x - cropStart.x);
+                    const currentHeight = Math.abs(cropEnd.y - cropStart.y);
                     
-                    // Update selection position
-                    cropStart.x += deltaX;
-                    cropStart.y += deltaY;
-                    cropEnd.x += deltaX;
-                    cropEnd.y += deltaY;
+                    // Calculate new position with mouse as center
+                    const newX = mouseX - mouseOffset.x;
+                    const newY = mouseY - mouseOffset.y;
+                    
+                    // Calculate new cropStart and cropEnd based on new position
+                    if (cropStart.x < cropEnd.x && cropStart.y < cropEnd.y) {
+                        // Normal case: cropStart is top-left, cropEnd is bottom-right
+                        cropStart.x = newX;
+                        cropStart.y = newY;
+                        cropEnd.x = newX + currentWidth;
+                        cropEnd.y = newY + currentHeight;
+                    } else if (cropStart.x > cropEnd.x && cropStart.y < cropEnd.y) {
+                        // cropStart is top-right, cropEnd is bottom-left
+                        cropStart.x = newX + currentWidth;
+                        cropStart.y = newY;
+                        cropEnd.x = newX;
+                        cropEnd.y = newY + currentHeight;
+                    } else if (cropStart.x < cropEnd.x && cropStart.y > cropEnd.y) {
+                        // cropStart is bottom-left, cropEnd is top-right
+                        cropStart.x = newX;
+                        cropStart.y = newY + currentHeight;
+                        cropEnd.x = newX + currentWidth;
+                        cropEnd.y = newY;
+                    } else {
+                        // cropStart is bottom-right, cropEnd is top-left
+                        cropStart.x = newX + currentWidth;
+                        cropStart.y = newY + currentHeight;
+                        cropEnd.x = newX;
+                        cropEnd.y = newY;
+                    }
                     
                     // Constrain to canvas bounds
                     const minX = Math.min(cropStart.x, cropEnd.x);
@@ -871,28 +906,74 @@
                     const minY = Math.min(cropStart.y, cropEnd.y);
                     const maxY = Math.max(cropStart.y, cropEnd.y);
                     
-                    if (minX < 0) {
-                        const offset = -minX;
-                        cropStart.x += offset;
-                        cropEnd.x += offset;
+                    // Apply constraints while maintaining the offset
+                    // First, calculate the current selection bounds
+                    const currentX2 = Math.min(cropStart.x, cropEnd.x);
+                    const currentY2 = Math.min(cropStart.y, cropEnd.y);
+                    const currentWidth2 = Math.abs(cropEnd.x - cropStart.x);
+                    const currentHeight2 = Math.abs(cropEnd.y - cropStart.y);
+                    
+                    // Calculate new position without constraints
+                    let targetX = mouseX - mouseOffset.x;
+                    let targetY = mouseY - mouseOffset.y;
+                    
+                    // Apply boundary constraints
+                    // Left boundary
+                    if (targetX < 0) {
+                        targetX = 0;
                     }
                     
-                    if (maxX > canvas.width) {
-                        const offset = canvas.width - maxX;
-                        cropStart.x += offset;
-                        cropEnd.x += offset;
+                    // Right boundary
+                    if (targetX + currentWidth2 > canvas.width) {
+                        targetX = canvas.width - currentWidth2;
                     }
                     
-                    if (minY < 0) {
-                        const offset = -minY;
-                        cropStart.y += offset;
-                        cropEnd.y += offset;
+                    // Top boundary
+                    if (targetY < 0) {
+                        targetY = 0;
                     }
                     
-                    if (maxY > canvas.height) {
-                        const offset = canvas.height - maxY;
-                        cropStart.y += offset;
-                        cropEnd.y += offset;
+                    // Bottom boundary
+                    if (targetY + currentHeight2 > canvas.height) {
+                        targetY = canvas.height - currentHeight2;
+                    }
+                    
+                    // Calculate the offset needed to stay within bounds
+                    const xOffset = targetX - currentX2;
+                    const yOffset = targetY - currentY2;
+                    
+                    // Apply offsets if needed
+                    if (xOffset !== 0 || yOffset !== 0) {
+                        // Update cropStart and cropEnd based on the new target position
+                        if (cropStart.x < cropEnd.x && cropStart.y < cropEnd.y) {
+                            // Normal case: cropStart is top-left, cropEnd is bottom-right
+                            cropStart.x = targetX;
+                            cropStart.y = targetY;
+                            cropEnd.x = targetX + currentWidth2;
+                            cropEnd.y = targetY + currentHeight2;
+                        } else if (cropStart.x > cropEnd.x && cropStart.y < cropEnd.y) {
+                            // cropStart is top-right, cropEnd is bottom-left
+                            cropStart.x = targetX + currentWidth2;
+                            cropStart.y = targetY;
+                            cropEnd.x = targetX;
+                            cropEnd.y = targetY + currentHeight2;
+                        } else if (cropStart.x < cropEnd.x && cropStart.y > cropEnd.y) {
+                            // cropStart is bottom-left, cropEnd is top-right
+                            cropStart.x = targetX;
+                            cropStart.y = targetY + currentHeight2;
+                            cropEnd.x = targetX + currentWidth2;
+                            cropEnd.y = targetY;
+                        } else {
+                            // cropStart is bottom-right, cropEnd is top-left
+                            cropStart.x = targetX + currentWidth2;
+                            cropStart.y = targetY + currentHeight2;
+                            cropEnd.x = targetX;
+                            cropEnd.y = targetY;
+                        }
+                        
+                        // Update mouse offset to maintain the same relative position
+                        mouseOffset.x += xOffset;
+                        mouseOffset.y += yOffset;
                     }
                     
                     // Update last mouse position
@@ -2245,7 +2326,9 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             // Draw image
-            ctx.drawImage(canvas, 0, 0);
+            if (currentImage) {
+                ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+            }
             
             // Draw all text objects
             textObjects.forEach(textObj => {
