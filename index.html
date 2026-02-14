@@ -1798,21 +1798,34 @@
                 });
             });
             
+            // Add reset button event listener
             document.getElementById('resetFilterBtn').addEventListener('click', () => {
-                // 重置 to original image
-                ctx.drawImage(canvas, 0, 0);
-                
-                // Update active filter
+                // Reset to normal filter
                 document.querySelectorAll('.filter-preview').forEach(p => p.classList.remove('active'));
                 document.querySelector('.filter-preview[data-filter="0"]').classList.add('active');
+                
+                // Reset to original image by redrawing from current state
+                // This ensures we don't accumulate filter effects
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+                
+                // Apply normal filter (which has no effect) to ensure consistency
+                applyFilter(filterPresets[0], true);
             });
             
+            // Add apply button event listener
             document.getElementById('applyFilterBtn').addEventListener('click', () => {
-                // Save to history
-                saveToHistory();
-                
-                // Hide properties panel
-                propertiesPanel.classList.add('hidden');
+                // Get active filter
+                const activePreview = document.querySelector('.filter-preview.active');
+                if (activePreview) {
+                    const filterIndex = parseInt(activePreview.dataset.filter);
+                    // Apply filter and save to history
+                    applyFilter(filterPresets[filterIndex], false);
+                    saveToHistory();
+                    
+                    // Hide properties panel
+                    propertiesPanel.classList.add('hidden');
+                }
             });
         }
         
