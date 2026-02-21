@@ -167,28 +167,6 @@
     <main class="flex-1 flex overflow-hidden">
         <!-- Left Toolbar -->
         <div class="w-20 bg-dark border-r border-white/10 flex flex-col items-center py-6 shadow-lg">
-            <!-- 復原/重做/重置 at top, centered -->
-            <div class="flex flex-col items-center space-y-4 mb-8">
-                <div class="has-tooltip">
-                    <div class="tooltip">復原</div>
-                    <button class="tool-button" data-tool="undo">
-                        <i class="fa fa-undo text-2xl"></i>
-                    </button>
-                </div>
-                <div class="has-tooltip">
-                    <div class="tooltip">重做</div>
-                    <button class="tool-button" data-tool="redo">
-                        <i class="fa fa-repeat text-2xl"></i>
-                    </button>
-                </div>
-                <div class="has-tooltip">
-                    <div class="tooltip">重置</div>
-                    <button class="tool-button" data-tool="reset">
-                        <i class="fa fa-refresh text-2xl"></i>
-                    </button>
-                </div>
-            </div>
-            
             <div class="w-10 border-t border-white/10 my-2"></div>
             
             <div class="flex flex-col items-center space-y-6">
@@ -249,7 +227,7 @@
         </div>
 
         <!-- Center Canvas Area -->
-        <div class="flex-1 flex items-center justify-center bg-gradient-to-br from-darker to-dark relative overflow-hidden">
+        <div class="flex-1 flex items-center justify-center bg-gradient-to-br from-darker to-dark relative overflow-auto">
             <!-- Background Pattern -->
             <div class="absolute inset-0 opacity-5">
                 <div class="absolute inset-0" style="background-image: radial-gradient(#ffffff 1px, transparent 1px); background-size: 20px 20px;"></div>
@@ -268,9 +246,31 @@
                 </div>
             </div>
             
-            <div id="canvasContainer" class="relative hidden animate-fade-in">
-                <div class="relative rounded-xl overflow-hidden shadow-2xl border border-white/10">
-                    <canvas id="imageCanvas" class="max-w-full max-h-[calc(100vh-140px)]"></canvas>
+            <div id="canvasContainer" class="relative hidden animate-fade-in p-8 max-w-full max-h-full flex flex-col items-center">
+                <!-- Floating action buttons -->
+                <div class="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 flex space-x-3 bg-dark/80 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/10 animate-fade-in">
+                    <div class="has-tooltip">
+                        <div class="tooltip">復原</div>
+                        <button class="tool-button bg-white/10 hover:bg-white/20 p-3 rounded-full" data-tool="undo">
+                            <i class="fa fa-undo text-xl"></i>
+                        </button>
+                    </div>
+                    <div class="has-tooltip">
+                        <div class="tooltip">重做</div>
+                        <button class="tool-button bg-white/10 hover:bg-white/20 p-3 rounded-full" data-tool="redo">
+                            <i class="fa fa-repeat text-xl"></i>
+                        </button>
+                    </div>
+                    <div class="has-tooltip">
+                        <div class="tooltip">重置</div>
+                        <button class="tool-button bg-white/10 hover:bg-white/20 p-3 rounded-full" data-tool="reset">
+                            <i class="fa fa-refresh text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="relative rounded-xl overflow-hidden shadow-2xl border border-white/10 bg-white/5 mt-16">
+                    <canvas id="imageCanvas" class="block max-w-full max-h-[calc(100vh-200px)]"></canvas>
                     <div id="canvasOverlay" class="absolute inset-0 pointer-events-none"></div>
                 </div>
             </div>
@@ -725,6 +725,18 @@
                     </div>
                     
                     <div class="mb-6">
+                        <label class="block text-sm text-white/70 mb-3">Shape</label>
+                        <div class="flex space-x-2">
+                            <button id="rectangleBtn" class="flex-1 aspect-btn active" data-shape="rectangle">
+                                <i class="fa fa-square-o mr-1"></i> Rectangle
+                            </button>
+                            <button id="circleBtn" class="flex-1 aspect-btn" data-shape="circle">
+                                <i class="fa fa-circle-o mr-1"></i> Circle
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
                         <label class="block text-sm text-white/70 mb-3">裁剪 Position</label>
                         <div class="grid grid-cols-3 gap-2">
                             <button class="btn btn-secondary w-full" onclick="move裁剪Area('top-left')" title="Top Left">
@@ -780,14 +792,26 @@
             });
             
             // Add aspect ratio button listeners
-            document.querySelectorAll('.aspect-btn').forEach(btn => {
+            document.querySelectorAll('.aspect-btn[data-ratio]').forEach(btn => {
                 btn.addEventListener('click', () => {
                     // Update active button
-                    document.querySelectorAll('.aspect-btn').forEach(b => b.classList.remove('active', 'bg-primary/20', 'text-primary'));
+                    document.querySelectorAll('.aspect-btn[data-ratio]').forEach(b => b.classList.remove('active', 'bg-primary/20', 'text-primary'));
                     btn.classList.add('active', 'bg-primary/20', 'text-primary');
                     
                     // Apply aspect ratio to current selection
                     applyAspectRatio(btn.dataset.ratio);
+                });
+            });
+            
+            // Add shape button listeners
+            document.querySelectorAll('[data-shape]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Update active button
+                    document.querySelectorAll('[data-shape]').forEach(b => b.classList.remove('active', 'bg-primary/20', 'text-primary'));
+                    btn.classList.add('active', 'bg-primary/20', 'text-primary');
+                    
+                    // Redraw selection with new shape
+                    draw裁剪Selection();
                 });
             });
             
@@ -921,21 +945,29 @@
                     // Left boundary
                     if (targetX < 0) {
                         targetX = 0;
+                        // Update mouse offset to maintain relative position
+                        mouseOffset.x = mouseX - targetX;
                     }
                     
                     // Right boundary
                     if (targetX + currentWidth2 > canvas.width) {
                         targetX = canvas.width - currentWidth2;
+                        // Update mouse offset to maintain relative position
+                        mouseOffset.x = mouseX - targetX;
                     }
                     
                     // Top boundary
                     if (targetY < 0) {
                         targetY = 0;
+                        // Update mouse offset to maintain relative position
+                        mouseOffset.y = mouseY - targetY;
                     }
                     
                     // Bottom boundary
                     if (targetY + currentHeight2 > canvas.height) {
                         targetY = canvas.height - currentHeight2;
+                        // Update mouse offset to maintain relative position
+                        mouseOffset.y = mouseY - targetY;
                     }
                     
                     // Calculate the offset needed to stay within bounds
@@ -1064,17 +1096,86 @@
             const width = Math.abs(cropEnd.x - cropStart.x);
             const height = Math.abs(cropEnd.y - cropStart.y);
             
-            // Create overlay div
-            const overlay = document.createElement('div');
-            overlay.style.position = 'absolute';
-            overlay.style.left = `${x}px`;
-            overlay.style.top = `${y}px`;
-            overlay.style.width = `${width}px`;
-            overlay.style.height = `${height}px`;
-            overlay.style.border = '2px dashed white';
-            overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+            // Get selected shape
+            const activeShapeBtn = document.querySelector('[data-shape].active');
+            const shape = activeShapeBtn ? activeShapeBtn.dataset.shape : 'rectangle';
             
-            canvasOverlay.appendChild(overlay);
+            if (shape === 'circle') {
+                // Create circular selection
+                const radius = Math.min(width, height) / 2;
+                const centerX = x + width / 2;
+                const centerY = y + height / 2;
+                
+                // Create SVG overlay
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.style.position = 'absolute';
+                svg.style.left = '0';
+                svg.style.top = '0';
+                svg.style.width = '100%';
+                svg.style.height = '100%';
+                svg.style.pointerEvents = 'none';
+                
+                // Create mask
+                const mask = document.createElementNS('http://www.w3.org/2000/svg', 'mask');
+                mask.id = 'cropMask';
+                
+                // Create background rectangle
+                const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                bgRect.setAttribute('x', '0');
+                bgRect.setAttribute('y', '0');
+                bgRect.setAttribute('width', '100%');
+                bgRect.setAttribute('height', '100%');
+                bgRect.setAttribute('fill', 'black');
+                
+                // Create circle
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', centerX);
+                circle.setAttribute('cy', centerY);
+                circle.setAttribute('r', radius);
+                circle.setAttribute('fill', 'white');
+                
+                // Assemble mask
+                mask.appendChild(bgRect);
+                mask.appendChild(circle);
+                svg.appendChild(mask);
+                
+                // Create overlay rectangle with mask
+                const overlayRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                overlayRect.setAttribute('x', '0');
+                overlayRect.setAttribute('y', '0');
+                overlayRect.setAttribute('width', '100%');
+                overlayRect.setAttribute('height', '100%');
+                overlayRect.setAttribute('fill', 'rgba(0, 0, 0, 0.3)');
+                overlayRect.setAttribute('mask', 'url(#cropMask)');
+                
+                svg.appendChild(overlayRect);
+                
+                // Create circle border
+                const borderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                borderCircle.setAttribute('cx', centerX);
+                borderCircle.setAttribute('cy', centerY);
+                borderCircle.setAttribute('r', radius);
+                borderCircle.setAttribute('fill', 'none');
+                borderCircle.setAttribute('stroke', 'white');
+                borderCircle.setAttribute('stroke-width', '2');
+                borderCircle.setAttribute('stroke-dasharray', '5,5');
+                
+                svg.appendChild(borderCircle);
+                
+                canvasOverlay.appendChild(svg);
+            } else {
+                // Create rectangular selection
+                const overlay = document.createElement('div');
+                overlay.style.position = 'absolute';
+                overlay.style.left = `${x}px`;
+                overlay.style.top = `${y}px`;
+                overlay.style.width = `${width}px`;
+                overlay.style.height = `${height}px`;
+                overlay.style.border = '2px dashed white';
+                overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+                
+                canvasOverlay.appendChild(overlay);
+            }
         }
         
         // Clear crop selection
@@ -1284,15 +1385,55 @@
                 return;
             }
             
-            // Get image data from crop area
-            const imageData = ctx.getImageData(x, y, width, height);
+            // Get selected shape
+            const activeShapeBtn = document.querySelector('[data-shape].active');
+            const shape = activeShapeBtn ? activeShapeBtn.dataset.shape : 'rectangle';
             
-            // Create new canvas with crop dimensions
-            canvas.width = width;
-            canvas.height = height;
-            
-            // Draw cropped image
-            ctx.putImageData(imageData, 0, 0);
+            if (shape === 'circle') {
+                // Create circular crop
+                const radius = Math.min(width, height) / 2;
+                const centerX = x + width / 2;
+                const centerY = y + height / 2;
+                const diameter = radius * 2;
+                
+                // Create temporary canvas for circular crop
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = diameter;
+                tempCanvas.height = diameter;
+                
+                // Draw image centered on temporary canvas
+                tempCtx.drawImage(canvas, centerX - radius, centerY - radius, diameter, diameter, 0, 0, diameter, diameter);
+                
+                // Create new canvas with circular dimensions
+                canvas.width = diameter;
+                canvas.height = diameter;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Create circular clipping path
+                ctx.beginPath();
+                ctx.arc(radius, radius, radius, 0, Math.PI * 2);
+                ctx.clip();
+                
+                // Draw image onto circular clipping path
+                ctx.drawImage(tempCanvas, 0, 0);
+                
+                // Reset clipping path
+                ctx.restore();
+            } else {
+                // Create rectangular crop
+                // Get image data from crop area
+                const imageData = ctx.getImageData(x, y, width, height);
+                
+                // Create new canvas with crop dimensions
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Draw cropped image
+                ctx.putImageData(imageData, 0, 0);
+            }
             
             // Save to history
             saveToHistory();
@@ -1754,7 +1895,7 @@
             filterPresets.forEach((filter, index) => {
                 filterHTML += `
                     <div class="filter-preview ${index === 0 ? 'active' : ''}" data-filter="${index}">
-                        <img src="${canvas.toDataURL()}" class="w-full h-full object-cover" id="filterPreview${index}">
+                        <img src="${canvas.toDataURL()}" class="w-full h-full object-cover" id="filterPreview${index}" onload="applyFilterToImage(this, filterPresets[${index}])">
                     </div>
                 `;
             });
@@ -1772,16 +1913,6 @@
             `;
             
             panelContent.innerHTML = filterHTML;
-            
-            // Generate filter previews
-            setTimeout(() => {
-                filterPresets.forEach((filter, index) => {
-                    const previewImg = document.getElementById(`filterPreview${index}`);
-                    if (previewImg) {
-                        applyFilterToImage(previewImg, filter);
-                    }
-                });
-            }, 100);
             
             // Add event listeners
             document.querySelectorAll('.filter-preview').forEach(preview => {
@@ -1831,14 +1962,21 @@
         
         // Apply filter to preview image
         function applyFilterToImage(imgElement, filter) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
+            // 检查是否已经处理过这个滤镜，避免重复处理
+            if (imgElement.dataset.processedFilter === JSON.stringify(filter)) {
+                return;
+            }
             
-            canvas.width = 100;
-            canvas.height = 100;
-            
-            imgElement.onload = function() {
-                ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
+            const tempImg = new Image();
+            tempImg.onload = function() {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = 100;
+                canvas.height = 100;
+                
+                // 绘制图像到临时画布
+                ctx.drawImage(tempImg, 0, 0, canvas.width, canvas.height);
                 
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imageData.data;
@@ -1902,9 +2040,20 @@
                 // Draw filtered image
                 ctx.putImageData(imageData, 0, 0);
                 
-                // Update preview image
+                // 标记此滤镜已处理
+                imgElement.dataset.processedFilter = JSON.stringify(filter);
+                
+                // Update preview image with filtered result
                 imgElement.src = canvas.toDataURL();
             };
+            
+            // 设置临时图像的源为原始图像数据
+            tempImg.src = imgElement.dataset.originalSrc || imgElement.src;
+            
+            // 保存原始图像数据，以便后续处理
+            if (!imgElement.dataset.originalSrc) {
+                imgElement.dataset.originalSrc = imgElement.src;
+            }
         }
         
         // Apply filter to main canvas
