@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>像素工房 - Modern Image Editor</title>
+    <title>像素工房 - 現代圖像編輯器</title>
     <!-- Tailwind CSS v3 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
@@ -183,14 +183,8 @@
                     </button>
                 </div>
                 <div class="has-tooltip">
-                    <div class="tooltip">旋轉</div>
-                    <button class="tool-button" data-tool="rotate">
-                        <i class="fa fa-rotate-right text-2xl"></i>
-                    </button>
-                </div>
-                <div class="has-tooltip">
-                    <div class="tooltip">翻轉</div>
-                    <button class="tool-button" data-tool="flip">
+                    <div class="tooltip">旋轉與翻轉</div>
+                    <button class="tool-button" data-tool="rotate-flip">
                         <i class="fa fa-refresh text-2xl"></i>
                     </button>
                 </div>
@@ -294,18 +288,18 @@
     <!-- 匯出 Modal -->
     <div id="exportModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden">
         <div class="bg-dark border border-white/20 rounded-lg p-6 w-80">
-            <h3 class="text-xl font-bold mb-4">匯出 Image</h3>
+            <h3 class="text-xl font-bold mb-4">匯出</h3>
             
             <div class="mb-4">
-                <label class="block text-sm text-white/70 mb-1">Format</label>
+                <label class="block text-sm text-white/70 mb-1">格式</label>
                 <select id="exportFormat" class="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2">
-                    <option value="image/png">PNG</option>
-                    <option value="image/jpeg">JPEG</option>
+                    <option value="image/png">PNG格式</option>
+                    <option value="image/jpeg">JPEG格式</option>
                 </select>
             </div>
             
             <div class="mb-4">
-                <label class="block text-sm text-white/70 mb-1">Quality</label>
+                <label class="block text-sm text-white/70 mb-1">品質</label>
                 <div class="flex items-center space-x-2">
                     <input type="range" id="exportQuality" min="0.1" max="1" step="0.1" value="1" class="flex-1">
                     <span id="qualityValue" class="text-sm w-8">100%</span>
@@ -314,7 +308,7 @@
             
             <div class="flex space-x-2 mt-6">
                 <button id="cancel匯出Btn" class="flex-1 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-md transition-colors">
-                    Cancel
+                    取消
                 </button>
                 <button id="confirm匯出Btn" class="flex-1 px-3 py-2 bg-primary hover:bg-secondary rounded-md transition-colors">
                     匯出
@@ -329,33 +323,33 @@
             <h3 class="text-xl font-bold mb-4">新增文字</h3>
             
             <div class="mb-4">
-                <label class="block text-sm text-white/70 mb-1">Text</label>
-                <input type="text" id="textInput" class="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2" placeholder="Enter text here...">
+                <label class="block text-sm text-white/70 mb-1">文字</label>
+                <input type="text" id="textInput" class="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2" placeholder="在此輸入文字...">
             </div>
             
             <div class="mb-4">
-                <label class="block text-sm text-white/70 mb-1">Font Family</label>
+                <label class="block text-sm text-white/70 mb-1">字體</label>
                 <select id="fontFamily" class="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2">
-                    <option value="Arial, sans-serif">Arial</option>
-                    <option value="'Times 新建 Roman', serif">Times 新建 Roman</option>
-                    <option value="'Courier 新建', monospace">Courier 新建</option>
-                    <option value="Georgia, serif">Georgia</option>
-                    <option value="Verdana, sans-serif">Verdana</option>
+                    <option value="Arial, sans-serif">亞洲體</option>
+                    <option value="'Times 新建 Roman', serif">新細明體</option>
+                    <option value="'Courier 新建', monospace">等寬</option>
+                    <option value="Georgia, serif">喬治亞</option>
+                    <option value="Verdana, sans-serif">微軟正黑體</option>
                 </select>
             </div>
             
             <div class="mb-4">
-                <label class="block text-sm text-white/70 mb-1">Font Size</label>
+                <label class="block text-sm text-white/70 mb-1">字體大小</label>
                 <input type="number" id="fontSize" class="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2" value="24" min="8" max="120">
             </div>
             
             <div class="mb-4">
-                <label class="block text-sm text-white/70 mb-1">Text Color</label>
+                <label class="block text-sm text-white/70 mb-1">文字顏色</label>
                 <input type="color" id="fontColor" class="w-full h-10 bg-white/10 border border-white/20 rounded-md cursor-pointer" value="#ffffff">
             </div>
             
             <div class="mb-4">
-                <label class="block text-sm text-white/70 mb-1">Style</label>
+                <label class="block text-sm text-white/70 mb-1">樣式</label>
                 <div class="flex space-x-2">
                     <button id="boldBtn" class="px-3 py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors">
                         <i class="fa fa-bold"></i>
@@ -371,7 +365,7 @@
             
             <div class="flex space-x-2 mt-6">
                 <button id="cancelTextBtn" class="flex-1 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-md transition-colors">
-                    Cancel
+                    取消
                 </button>
                 <button id="confirmTextBtn" class="flex-1 px-3 py-2 bg-primary hover:bg-secondary rounded-md transition-colors">
                     新增文字
@@ -383,22 +377,22 @@
     <!-- AI背景移除 Modal -->
     <div id="aiModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 hidden">
         <div class="bg-dark border border-white/20 rounded-lg p-6 w-96">
-            <h3 class="text-xl font-bold mb-4">AI Background Removal</h3>
+            <h3 class="text-xl font-bold mb-4">AI背景移除</h3>
             
             <div class="mb-6">
-                <p class="text-white/70 mb-4">This feature will automatically remove the background from your image using AI technology.</p>
+                <p class="text-white/70 mb-4">此功能將使用AI技術自動移除圖片背景。</p>
                 <div class="flex items-center space-x-2 text-sm text-yellow-400">
                     <i class="fa fa-info-circle"></i>
-                    <span>This is a simulated AI feature for demonstration purposes.</span>
+                    <span>此為模擬AI功能，僅供演示使用。</span>
                 </div>
             </div>
             
             <div class="flex space-x-2">
                 <button id="cancelAiBtn" class="flex-1 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-md transition-colors">
-                    Cancel
+                    取消
                 </button>
                 <button id="confirmAiBtn" class="flex-1 px-3 py-2 bg-primary hover:bg-secondary rounded-md transition-colors">
-                    Remove Background
+                    移除背景
                 </button>
             </div>
         </div>
@@ -421,14 +415,14 @@
         
         // Filter presets
         const filterPresets = [
-            { name: 'Normal', values: { brightness: 0, contrast: 0, saturation: 0, grayscale: 0, sepia: 0 } },
-            { name: 'Vintage', values: { brightness: 10, contrast: -10, saturation: -20, grayscale: 0, sepia: 50 } },
-            { name: 'B&W', values: { brightness: 0, contrast: 20, saturation: -100, grayscale: 100, sepia: 0 } },
-            { name: 'Vibrant', values: { brightness: 10, contrast: 15, saturation: 40, grayscale: 0, sepia: 0 } },
-            { name: 'Dramatic', values: { brightness: -10, contrast: 30, saturation: 10, grayscale: 0, sepia: 0 } },
-            { name: 'Cool', values: { brightness: 0, contrast: 0, saturation: 0, grayscale: 0, sepia: 0, hue: 180 } },
-            { name: 'Warm', values: { brightness: 10, contrast: 0, saturation: 20, grayscale: 0, sepia: 30 } },
-            { name: 'Blur', values: { blur: 5 } }
+            { name: '正常', values: { brightness: 0, contrast: 0, saturation: 0, grayscale: 0, sepia: 0 } },
+            { name: '懷舊', values: { brightness: 10, contrast: -10, saturation: -20, grayscale: 0, sepia: 50 } },
+            { name: '黑白', values: { brightness: 0, contrast: 20, saturation: -100, grayscale: 100, sepia: 0 } },
+            { name: '鮮豔', values: { brightness: 10, contrast: 15, saturation: 40, grayscale: 0, sepia: 0 } },
+            { name: '戲劇', values: { brightness: -10, contrast: 30, saturation: 10, grayscale: 0, sepia: 0 } },
+            { name: '冷色', values: { brightness: 0, contrast: 0, saturation: 0, grayscale: 0, sepia: 0, hue: 180 } },
+            { name: '暖色', values: { brightness: 10, contrast: 0, saturation: 20, grayscale: 0, sepia: 30 } },
+            { name: '模糊', values: { blur: 5 } }
         ];
         
         // DOM Elements
@@ -535,7 +529,7 @@
         // Process the selected image file
         function handleImageFile(file) {
             if (!file.type.match('image.*')) {
-                alert('Please select an image file.');
+                alert('請選擇圖片文件。');
                 return;
             }
             
@@ -600,8 +594,8 @@
         // Create a new blank image
         function newImage() {
             // Show prompt for image dimensions
-            const width = prompt('Enter image width:', '800');
-            const height = prompt('Enter image height:', '600');
+            const width = prompt('請輸入圖片寬度:', '800');
+            const height = prompt('請輸入圖片高度:', '600');
             
             if (width && height && !isNaN(width) && !isNaN(height)) {
                 // 重置 canvas and history
@@ -687,11 +681,8 @@
                 case 'resize':
                     show調整大小Panel();
                     break;
-                case 'rotate':
+                case 'rotate-flip':
                     show旋轉Panel();
-                    break;
-                case 'flip':
-                    show翻轉Panel();
                     break;
                 case 'adjust':
                     showAdjustPanel();
@@ -709,13 +700,13 @@
         function show裁剪Panel() {
             panelContent.innerHTML = `
                 <div class="panel-section">
-                    <h3 class="panel-title">裁剪 Image</h3>
-                    <p class="text-sm text-white/70 mb-4">Click and drag on the image to select crop area</p>
+                    <h3 class="panel-title">裁剪圖片</h3>
+                    <p class="text-sm text-white/70 mb-4">點擊並拖動圖片以選擇裁剪區域</p>
                     
                     <div class="mb-6">
-                        <label class="block text-sm text-white/70 mb-3">Aspect Ratio</label>
+                        <label class="block text-sm text-white/70 mb-3">寬高比</label>
                         <div class="grid grid-cols-3 gap-2">
-                            <button class="aspect-btn active" data-ratio="free">Free</button>
+                            <button class="aspect-btn active" data-ratio="free">自由</button>
                             <button class="aspect-btn" data-ratio="1:1">1:1</button>
                             <button class="aspect-btn" data-ratio="4:3">4:3</button>
                             <button class="aspect-btn" data-ratio="16:9">16:9</button>
@@ -725,45 +716,45 @@
                     </div>
                     
                     <div class="mb-6">
-                        <label class="block text-sm text-white/70 mb-3">Shape</label>
+                        <label class="block text-sm text-white/70 mb-3">形狀</label>
                         <div class="flex space-x-2">
                             <button id="rectangleBtn" class="flex-1 aspect-btn active" data-shape="rectangle">
-                                <i class="fa fa-square-o mr-1"></i> Rectangle
+                                <i class="fa fa-square-o mr-1"></i> 矩形
                             </button>
                             <button id="circleBtn" class="flex-1 aspect-btn" data-shape="circle">
-                                <i class="fa fa-circle-o mr-1"></i> Circle
+                                <i class="fa fa-circle-o mr-1"></i> 圓形
                             </button>
                         </div>
                     </div>
                     
                     <div class="mb-6">
-                        <label class="block text-sm text-white/70 mb-3">裁剪 Position</label>
+                        <label class="block text-sm text-white/70 mb-3">裁剪位置</label>
                         <div class="grid grid-cols-3 gap-2">
-                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('top-left')" title="Top Left">
+                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('top-left')" title="左上角">
                                 <i class="fa fa-arrow-up fa-rotate-45"></i>
                             </button>
-                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('top')" title="Top">
+                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('top')" title="上">
                                 <i class="fa fa-arrow-up"></i>
                             </button>
-                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('top-right')" title="Top Right">
+                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('top-right')" title="右上角">
                                 <i class="fa fa-arrow-up fa-rotate-315"></i>
                             </button>
-                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('left')" title="Left">
+                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('left')" title="左">
                                 <i class="fa fa-arrow-left"></i>
                             </button>
-                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('center')" title="Center">
+                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('center')" title="中間">
                                 <i class="fa fa-crosshairs"></i>
                             </button>
-                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('right')" title="Right">
+                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('right')" title="右">
                                 <i class="fa fa-arrow-right"></i>
                             </button>
-                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('bottom-left')" title="Bottom Left">
+                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('bottom-left')" title="左下角">
                                 <i class="fa fa-arrow-down fa-rotate-45"></i>
                             </button>
-                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('bottom')" title="Bottom">
+                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('bottom')" title="下">
                                 <i class="fa fa-arrow-down"></i>
                             </button>
-                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('bottom-right')" title="Bottom Right">
+                            <button class="btn btn-secondary w-full" onclick="move裁剪Area('bottom-right')" title="右下角">
                                 <i class="fa fa-arrow-down fa-rotate-315"></i>
                             </button>
                         </div>
@@ -772,10 +763,10 @@
                 
                 <div class="flex justify-between pt-4 border-t border-white/10">
                     <button id="cancel裁剪Btn" class="btn btn-secondary flex-1 mr-2">
-                        <i class="fa fa-times mr-2"></i> Cancel
+                        <i class="fa fa-times mr-2"></i> 取消
                     </button>
                     <button id="apply裁剪Btn" class="btn btn-primary flex-1 ml-2">
-                        <i class="fa fa-check mr-2"></i> Apply 裁剪
+                        <i class="fa fa-check mr-2"></i> 應用裁剪
                     </button>
                 </div>
             `;
@@ -1452,25 +1443,25 @@
             const currentHeight = canvas.height;
             
             panelContent.innerHTML = `
-                <h3 class="text-lg font-bold mb-4">調整大小 Image</h3>
+                <h3 class="text-lg font-bold mb-4">調整大小</h3>
                 <div class="mb-4">
-                    <label class="block text-sm text-white/70 mb-1">Width (px)</label>
+                    <label class="block text-sm text-white/70 mb-1">寬度 (px)</label>
                     <input type="number" id="resizeWidth" class="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2" value="${currentWidth}">
                 </div>
                 <div class="mb-4">
-                    <label class="block text-sm text-white/70 mb-1">Height (px)</label>
+                    <label class="block text-sm text-white/70 mb-1">高度 (px)</label>
                     <input type="number" id="resizeHeight" class="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2" value="${currentHeight}">
                 </div>
                 <div class="flex items-center mb-4">
                     <input type="checkbox" id="maintainAspectRatio" class="mr-2" checked>
-                    <label for="maintainAspectRatio" class="text-sm text-white/70">Maintain aspect ratio</label>
+                    <label for="maintainAspectRatio" class="text-sm text-white/70">保持寬高比</label>
                 </div>
                 <div class="flex space-x-2">
                     <button id="apply調整大小Btn" class="flex-1 px-3 py-2 bg-primary hover:bg-secondary rounded-md transition-colors">
-                        Apply
+                        應用
                     </button>
                     <button id="cancel調整大小Btn" class="flex-1 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-md transition-colors">
-                        Cancel
+                        取消
                     </button>
                 </div>
             `;
@@ -1506,7 +1497,7 @@
                 if (newWidth > 0 && newHeight > 0) {
                     resizeImage(newWidth, newHeight);
                 } else {
-                    alert('Please enter valid dimensions.');
+                    alert('請輸入有效的尺寸。');
                 }
             });
             
@@ -1519,7 +1510,7 @@
         function resizeImage(width, height) {
             // Show loading overlay
             loadingOverlay.classList.remove('hidden');
-            loadingText.textContent = 'Resizing image...';
+            loadingText.textContent = '調整圖片大小中...';
             
             setTimeout(() => {
                 // Create temporary canvas
@@ -1554,30 +1545,30 @@
         // 旋轉 Panel
         function show旋轉Panel() {
             panelContent.innerHTML = `
-                <h3 class="text-lg font-bold mb-4">旋轉 Image</h3>
+                <h3 class="text-lg font-bold mb-4">旋轉</h3>
                 <div class="grid grid-cols-2 gap-2 mb-4">
                     <button id="rotateLeftBtn" class="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-md transition-colors flex items-center justify-center">
-                        <i class="fa fa-rotate-left mr-2"></i> 90° Left
+                        <i class="fa fa-rotate-left mr-2"></i> 90° 左
                     </button>
                     <button id="rotateRightBtn" class="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-md transition-colors flex items-center justify-center">
-                        <i class="fa fa-rotate-right mr-2"></i> 90° Right
+                        <i class="fa fa-rotate-right mr-2"></i> 90° 右
                     </button>
                     <button id="rotate180Btn" class="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-md transition-colors flex items-center justify-center">
                         <i class="fa fa-refresh mr-2"></i> 180°
                     </button>
                     <button id="rotateCustomBtn" class="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-md transition-colors flex items-center justify-center">
-                        <i class="fa fa-sliders mr-2"></i> Custom
+                        <i class="fa fa-sliders mr-2"></i> 自訂
                     </button>
                 </div>
                 <div id="custom旋轉Container" class="hidden mb-4">
-                    <label class="block text-sm text-white/70 mb-1">Rotation angle</label>
+                    <label class="block text-sm text-white/70 mb-1">旋轉角度</label>
                     <div class="flex items-center space-x-2">
                         <input type="range" id="rotateAngle" min="0" max="359" value="0" class="flex-1">
                         <span id="angleValue" class="text-sm w-10">0°</span>
                     </div>
                 </div>
                 <button id="applyRotationBtn" class="w-full px-3 py-2 bg-primary hover:bg-secondary rounded-md transition-colors hidden">
-                    Apply
+                    應用
                 </button>
             `;
             
@@ -1610,7 +1601,7 @@
         function rotateImage(angle) {
             // Show loading overlay
             loadingOverlay.classList.remove('hidden');
-            loadingText.textContent = 'Rotating image...';
+            loadingText.textContent = '旋轉圖片中...';
             
             setTimeout(() => {
                 // Convert angle to radians
@@ -1654,24 +1645,7 @@
             }, 300);
         }
         
-        // 翻轉 Panel
-        function show翻轉Panel() {
-            panelContent.innerHTML = `
-                <h3 class="text-lg font-bold mb-4">翻轉 Image</h3>
-                <div class="grid grid-cols-2 gap-2">
-                    <button id="flipHorizontalBtn" class="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-md transition-colors flex items-center justify-center">
-                        <i class="fa fa-arrows-h mr-2"></i> Horizontal
-                    </button>
-                    <button id="flipVerticalBtn" class="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-md transition-colors flex items-center justify-center">
-                        <i class="fa fa-arrows-v mr-2"></i> Vertical
-                    </button>
-                </div>
-            `;
-            
-            // Add event listeners
-            document.getElementById('flipHorizontalBtn').addEventListener('click', () => flipImage(true, false));
-            document.getElementById('flipVerticalBtn').addEventListener('click', () => flipImage(false, true));
-        }
+
         
         // 翻轉 image
         function flipImage(horizontal, vertical) {
@@ -1726,28 +1700,28 @@
             panelContent.innerHTML = `
                 <h3 class="text-lg font-bold mb-4">調整</h3>
                 <div class="mb-4">
-                    <label class="block text-sm text-white/70 mb-1">Brightness</label>
+                    <label class="block text-sm text-white/70 mb-1">亮度</label>
                     <div class="flex items-center space-x-2">
                         <input type="range" id="brightnessSlider" min="-100" max="100" value="0" class="flex-1">
                         <span id="brightnessValue" class="text-sm w-8">0</span>
                     </div>
                 </div>
                 <div class="mb-4">
-                    <label class="block text-sm text-white/70 mb-1">Contrast</label>
+                    <label class="block text-sm text-white/70 mb-1">對比度</label>
                     <div class="flex items-center space-x-2">
                         <input type="range" id="contrastSlider" min="-100" max="100" value="0" class="flex-1">
                         <span id="contrastValue" class="text-sm w-8">0</span>
                     </div>
                 </div>
                 <div class="mb-4">
-                    <label class="block text-sm text-white/70 mb-1">Saturation</label>
+                    <label class="block text-sm text-white/70 mb-1">飽和度</label>
                     <div class="flex items-center space-x-2">
                         <input type="range" id="saturationSlider" min="-100" max="100" value="0" class="flex-1">
                         <span id="saturationValue" class="text-sm w-8">0</span>
                     </div>
                 </div>
                 <div class="mb-4">
-                    <label class="block text-sm text-white/70 mb-1">Blur</label>
+                    <label class="block text-sm text-white/70 mb-1">模糊</label>
                     <div class="flex items-center space-x-2">
                         <input type="range" id="blurSlider" min="0" max="20" value="0" class="flex-1">
                         <span id="blurValue" class="text-sm w-8">0</span>
@@ -1758,7 +1732,7 @@
                         重置
                     </button>
                     <button id="applyAdjustBtn" class="flex-1 px-3 py-2 bg-primary hover:bg-secondary rounded-md transition-colors">
-                        Apply
+                        應用
                     </button>
                 </div>
             `;
@@ -1907,7 +1881,7 @@
                         重置
                     </button>
                     <button id="applyFilterBtn" class="flex-1 px-3 py-2 bg-primary hover:bg-secondary rounded-md transition-colors">
-                        Apply
+                        應用
                     </button>
                 </div>
             `;
