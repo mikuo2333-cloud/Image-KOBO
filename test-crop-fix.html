@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试裁剪窗口修复</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .canvas-container {
+            width: 400px;
+            height: 300px;
+            border: 1px solid #ccc;
+            position: relative;
+            overflow: hidden;
+        }
+        .crop-overlay {
+            position: absolute;
+            border: 2px dashed white;
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold mb-4">裁剪窗口修复测试</h1>
+        
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-2">问题描述</h2>
+            <p>裁剪窗口在拖动到画布边缘时会被"吸住"，当鼠标继续移动时，窗口不会跟随鼠标移动。</p>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-2">修复方案</h2>
+            <p>在边界约束检查后，更新鼠标偏移量，确保当裁剪窗口碰到边界时，鼠标与窗口的相对位置保持一致。</p>
+            <pre class="bg-gray-100 p-3 rounded overflow-x-auto">
+// 修复前
+if (targetX < 0) {
+    targetX = 0;
+}
+
+// 修复后
+if (targetX < 0) {
+    targetX = 0;
+    // Update mouse offset to maintain relative position
+    mouseOffset.x = mouseX - targetX;
+}
+            </pre>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-2">测试方法</h2>
+            <ol class="list-decimal pl-5 space-y-2">
+                <li>打开主应用程序 (index.html)</li>
+                <li>上传一张图片</li>
+                <li>选择"裁剪"工具</li>
+                <li>创建一个裁剪选区</li>
+                <li>尝试将裁剪窗口拖动到画布边缘</li>
+                <li>验证裁剪窗口是否能正常跟随鼠标移动，而不是被边缘"吸住"</li>
+            </ol>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="text-xl font-semibold mb-2">预期结果</h2>
+            <p>裁剪窗口应该能够平滑地拖动到画布边缘，并且在到达边缘后，即使鼠标继续移动，窗口也应该保持在边缘位置，而不是"跳回"或"吸住"。</p>
+        </div>
+        
+        <div class="mt-6">
+            <a href="index.html" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                返回主应用
+            </a>
+        </div>
+    </div>
+</body>
+</html>

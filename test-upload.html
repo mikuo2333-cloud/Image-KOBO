@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图像上传测试工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
+        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">图像上传测试工具</h1>
+        
+        <div class="space-y-6">
+            <div class="text-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+                    <i class="fa fa-cloud-upload text-3xl text-blue-500"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2">测试图像</h3>
+                <p class="text-gray-600 mb-4">点击下方按钮测试图像上传功能</p>
+                
+                <button id="testUploadBtn" class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all duration-300 shadow-md hover:shadow-lg">
+                    开始测试上传
+                </button>
+            </div>
+            
+            <div class="bg-gray-50 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold mb-3 flex items-center">
+                    <i class="fa fa-list-alt text-blue-500 mr-2"></i>
+                    测试步骤
+                </h3>
+                <ol class="list-decimal list-inside space-y-2 text-gray-700">
+                    <li>点击上方"开始测试上传"按钮</li>
+                    <li>系统会自动模拟文件选择过程</li>
+                    <li>打开浏览器开发者工具查看控制台日志</li>
+                    <li>检查是否有错误信息</li>
+                </ol>
+            </div>
+            
+            <div class="bg-gray-50 p-6 rounded-lg">
+                <h3 class="text-lg font-semibold mb-3 flex items-center">
+                    <i class="fa fa-info-circle text-blue-500 mr-2"></i>
+                    如何查看日志
+                </h3>
+                <div class="space-y-2 text-gray-700">
+                    <p><strong>Chrome/Firefox:</strong> F12 或 Ctrl+Shift+I，切换到 Console 标签</p>
+                    <p><strong>Edge:</strong> F12 或 Ctrl+Shift+I，切换到 控制台 标签</p>
+                    <p><strong>Safari:</strong> Command+Option+C，切换到 控制台 标签</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 测试图像 URL（使用之前生成的测试图像）
+        const TEST_IMAGE_URL = 'https://p9-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/6b346c9585b745ea92eb5eccbbefd4f3~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=20260214151539003CF91DFB1AE64A039B&rrcfp=f06b921b&x-expires=1773645414&x-signature=ZK7anxsAnQG%2BRUuAiEYfGX3VXgk%3D';
+        
+        document.getElementById('testUploadBtn').addEventListener('click', async function() {
+            console.log('🚀 开始测试图像上传流程...');
+            
+            try {
+                // 步骤1: 下载测试图像
+                console.log('📥 步骤1: 下载测试图像');
+                const response = await fetch(TEST_IMAGE_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const blob = await response.blob();
+                console.log('✅ 图像下载成功，大小:', blob.size, 'bytes');
+                console.log('📄 文件类型:', blob.type);
+                
+                // 步骤2: 创建 File 对象
+                console.log('📋 步骤2: 创建 File 对象');
+                const file = new File([blob], 'test-image.png', { type: blob.type });
+                console.log('✅ File 对象创建成功:', file.name, file.size, 'bytes');
+                
+                // 步骤3: 模拟文件输入
+                console.log('🎯 步骤3: 模拟文件输入');
+                
+                // 检查是否在图像编辑器页面
+                if (window.location.pathname.includes('image-editor')) {
+                    console.log('🏠 已在图像编辑器页面，直接调用 handleImageFile');
+                    
+                    if (typeof handleImageFile === 'function') {
+                        console.log('🔧 调用 handleImageFile 函数');
+                        handleImageFile(file);
+                    } else {
+                        console.error('❌ handleImageFile 函数未找到');
+                    }
+                } else {
+                    console.log('🔗 跳转到图像编辑器页面并传递文件');
+                    // 在实际使用中，用户需要手动打开图像编辑器页面
+                    alert('请打开图像编辑器页面 (index.html) 后再运行此测试');
+                }
+                
+                console.log('🎉 测试完成！请查看控制台日志了解详细信息。');
+                
+            } catch (error) {
+                console.error('❌ 测试过程中发生错误:', error);
+            }
+        });
+        
+        // 添加全局测试函数
+        window.testImageUpload = async function() {
+            const btn = document.getElementById('testUploadBtn');
+            if (btn) {
+                btn.click();
+            }
+        };
+        
+        console.log('🔧 测试工具已加载完成');
+        console.log('💡 提示: 可以在控制台运行 window.testImageUpload() 开始测试');
+    </script>
+</body>
+</html>
