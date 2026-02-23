@@ -468,9 +468,17 @@
             document.getElementById('cancelAiBtn').addEventListener('click', () => aiModal.classList.add('hidden'));
             document.getElementById('confirmAiBtn').addEventListener('click', simulateAiBackgroundRemove);
             
+            // Initialize toolbar buttons state
+            updateToolbarState(false);
+            
             // Toolbar Events
             document.querySelectorAll('.tool-button').forEach(button => {
-                button.addEventListener('click', () => selectTool(button.dataset.tool));
+                button.addEventListener('click', () => {
+                    // Only allow tool selection if an image is loaded
+                    if (currentImage || button.dataset.tool === 'ai') {
+                        selectTool(button.dataset.tool);
+                    }
+                });
             });
             
             // Drag & Drop Events
@@ -569,6 +577,9 @@
                     originalImage = img;
                     currentImage = img;
                     
+                    // Enable toolbar buttons
+                    updateToolbarState(true);
+                    
                     // Save initial state to history
                     saveToHistory();
                     
@@ -618,16 +629,26 @@
                 
                 // Enable save button
                 document.getElementById('saveImageBtn').disabled = false;
+                
+                // Enable toolbar buttons
+                updateToolbarState(true);
             }
         }
         
         // 重置 canvas to initial state
         function resetCanvas() {
+            // Reset canvas dimensions
+            canvas.width = 0;
+            canvas.height = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvasOverlay.innerHTML = '';
+            
             textObjects = [];
             history = [];
             historyIndex = -1;
             currentTool = 'none';
             selectedTextIndex = -1;
+            currentImage = null;
             
             // 重置 tool buttons
             document.querySelectorAll('.tool-button').forEach(button => {
@@ -636,10 +657,37 @@
             
             // Hide properties panel
             propertiesPanel.classList.add('hidden');
+            
+            // Disable toolbar buttons when canvas is reset
+            updateToolbarState(false);
+        }
+        
+        // Update toolbar buttons state based on whether an image is loaded
+        function updateToolbarState(enabled) {
+            document.querySelectorAll('.tool-button').forEach(button => {
+                const tool = button.dataset.tool;
+                // Always enable AI tool
+                if (tool === 'ai') {
+                    button.disabled = false;
+                    button.classList.remove('opacity-50', 'cursor-not-allowed');
+                } else {
+                    button.disabled = !enabled;
+                    if (enabled) {
+                        button.classList.remove('opacity-50', 'cursor-not-allowed');
+                    } else {
+                        button.classList.add('opacity-50', 'cursor-not-allowed');
+                    }
+                }
+            });
         }
         
         // Select a tool from the toolbar
         function selectTool(tool) {
+            // Clear any existing crop selection when switching tools
+            if (currentTool === 'crop' && tool !== 'crop') {
+                clear裁剪Selection();
+            }
+            
             // Update active tool button
             document.querySelectorAll('.tool-button').forEach(button => {
                 button.classList.toggle('active', button.dataset.tool === tool);
@@ -1148,8 +1196,8 @@
                 borderCircle.setAttribute('r', radius);
                 borderCircle.setAttribute('fill', 'none');
                 borderCircle.setAttribute('stroke', 'white');
-                borderCircle.setAttribute('stroke-width', '2');
-                borderCircle.setAttribute('stroke-dasharray', '5,5');
+                borderCircle.setAttribute('stroke-width', '3');
+                borderCircle.setAttribute('stroke-dasharray', '8,4');
                 
                 svg.appendChild(borderCircle);
                 
@@ -1162,7 +1210,7 @@
                 overlay.style.top = `${y}px`;
                 overlay.style.width = `${width}px`;
                 overlay.style.height = `${height}px`;
-                overlay.style.border = '2px dashed white';
+                overlay.style.border = '3px dashed white';
                 overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
                 
                 canvasOverlay.appendChild(overlay);
@@ -1174,10 +1222,22 @@
             canvas.style.cursor = 'default';
             canvasOverlay.innerHTML = '';
             
-            canvas.removeEventListener('mousedown', start裁剪Selection);
-            canvas.removeEventListener('mousemove', update裁剪Selection);
-            canvas.removeEventListener('mouseup', end裁剪Selection);
-            canvas.removeEventListener('mouseleave', end裁剪Selection);
+            // Remove all crop-related event listeners
+            const events = ['mousedown', 'mousemove', 'mouseup', 'mouseleave'];
+            events.forEach(event => {
+                // Remove all listeners by using a temporary function
+                const tempListeners = canvas.eventListeners && canvas.eventListeners[event] || [];
+                tempListeners.forEach(listener => {
+                    if (listener.toString().includes('crop') || listener.toString().includes('裁剪')) {
+                        canvas.removeEventListener(event, listener);
+                    }
+                });
+            });
+            
+            // Reset crop variables
+            cropStart = { x: 0, y: 0 };
+            cropEnd = { x: 0, y: 0 };
+            isDragging = false;
         }
         
         // Move crop area to specific position
