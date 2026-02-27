@@ -132,20 +132,17 @@
 <body class="bg-darker text-light min-h-screen flex flex-col overflow-hidden">
     <!-- Header -->
     <header class="bg-dark border-b border-white/10 py-2 px-6 shadow-md">
-        <div class="flex items-center justify-between max-w-7xl mx-auto w-full">
-            <!-- Left side - empty for balance -->
-            <div class="w-64"></div>
-            
-            <!-- Center - Logo and Title -->
-            <div class="flex items-center space-x-3 flex-shrink-0">
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-lg">
+        <div class="flex items-center max-w-7xl mx-auto w-full">
+            <!-- Logo and Title -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="resetToHome()">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow">
                     <i class="fa fa-paint-brush text-white text-2xl"></i>
                 </div>
-                <h1 class="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">像素工房</h1>
+                <h1 class="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent hover:text-white transition-colors">像素工房</h1>
             </div>
             
             <!-- Right side - Action buttons -->
-            <div class="flex items-center space-x-3 justify-end">
+            <div class="flex items-center space-x-3 ml-auto">
                 <button id="newImageBtn" class="btn btn-secondary flex items-center space-x-2">
                     <i class="fa fa-plus text-lg"></i>
                     <span>新建</span>
@@ -265,7 +262,7 @@
                 
                 <div class="relative rounded-xl overflow-hidden shadow-2xl border border-white/10 bg-white/5 mt-16">
                     <canvas id="imageCanvas" class="block max-w-full max-h-[calc(100vh-200px)]"></canvas>
-                    <div id="canvasOverlay" class="absolute inset-0 pointer-events-none"></div>
+                    <div id="canvasOverlay" class="absolute inset-0 pointer-events-auto z-10"></div>
                 </div>
             </div>
             
@@ -411,6 +408,11 @@
         let cropStart = { x: 0, y: 0 };
         let cropEnd = { x: 0, y: 0 };
         let isDragging = false;
+        let isMovingSelection = false;
+        let isResizingSelection = false;
+        let lastMousePos = { x: 0, y: 0 };
+        let mouseOffset = { x: 0, y: 0 };
+        let resizeHandle = null;
         let selectedTextIndex = -1;
         
         // Filter presets
@@ -650,6 +652,16 @@
             selectedTextIndex = -1;
             currentImage = null;
             
+            // 重置 crop selection variables
+            cropStart = { x: 0, y: 0 };
+            cropEnd = { x: 0, y: 0 };
+            isDragging = false;
+            isMovingSelection = false;
+            isResizingSelection = false;
+            lastMousePos = { x: 0, y: 0 };
+            mouseOffset = { x: 0, y: 0 };
+            resizeHandle = null;
+            
             // 重置 tool buttons
             document.querySelectorAll('.tool-button').forEach(button => {
                 button.classList.remove('active');
@@ -862,278 +874,380 @@
         function setup裁剪Selection() {
             canvas.style.cursor = 'crosshair';
             
-            // Variables for crop selection dragging
-            let isMovingSelection = false;
-            let lastMousePos = { x: 0, y: 0 };
-            let mouseOffset = { x: 0, y: 0 }; // Mouse offset within the selection
+            // Clear any existing selection
+            canvasOverlay.innerHTML = '';
             
-            // Check if mouse is inside crop selection
-            function isMouseInsideSelection(x, y) {
-                const minX = Math.min(cropStart.x, cropEnd.x);
-                const maxX = Math.max(cropStart.x, cropEnd.x);
-                const minY = Math.min(cropStart.y, cropEnd.y);
-                const maxY = Math.max(cropStart.y, cropEnd.y);
-                
-                return x >= minX && x <= maxX && y >= minY && y <= maxY;
+            // Create initial selection (80% of canvas) if none exists
+            const hasSelection = Math.abs(cropEnd.x - cropStart.x) > 5 && Math.abs(cropEnd.y - cropStart.y) > 5;
+            if (!hasSelection) {
+                const initialWidth = canvas.width * 0.8;
+                const initialHeight = canvas.height * 0.8;
+                cropStart.x = (canvas.width - initialWidth) / 2;
+                cropStart.y = (canvas.height - initialHeight) / 2;
+                cropEnd.x = cropStart.x + initialWidth;
+                cropEnd.y = cropStart.y + initialHeight;
             }
             
-            // Start crop selection or moving selection
-            canvas.addEventListener('mousedown', (e) => {
-                if (currentTool !== 'crop') return;
+            // Draw initial selection with handles
+            draw裁剪Selection();
+            
+            // Add mouse event listeners for crop selection
+            canvas.addEventListener('mousedown', handleCropMouseDown);
+            canvas.addEventListener('mousemove', handleCropMouseMove);
+            canvas.addEventListener('mouseup', handleCropMouseUp);
+            canvas.addEventListener('mouseleave', handleCropMouseLeave);
+        }
+        
+        // Mouse event handlers for crop selection
+        let isCropDragging = false;
+        
+        function handleCropMouseDown(e) {
+            if (currentTool !== 'crop') return;
+            
+            // Only handle canvas clicks (not selection or handles)
+            if (e.target === canvas) {
+                e.preventDefault();
                 
-                const rect = canvas.getBoundingClientRect();
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
+                console.log('Canvas mousedown detected');
                 
-                const mouseX = (e.clientX - rect.left) * scaleX;
-                const mouseY = (e.clientY - rect.top) * scaleY;
-                
-                // Check if we have an existing selection
+                // Check if there's an existing selection
                 const hasSelection = Math.abs(cropEnd.x - cropStart.x) > 5 && Math.abs(cropEnd.y - cropStart.y) > 5;
                 
-                if (hasSelection && isMouseInsideSelection(mouseX, mouseY)) {
-                    // Start moving the selection
-                    isMovingSelection = true;
-                    lastMousePos = { x: mouseX, y: mouseY };
-                    
-                    // Calculate mouse offset within the selection
-                    const selectionX = Math.min(cropStart.x, cropEnd.x);
-                    const selectionY = Math.min(cropStart.y, cropEnd.y);
-                    mouseOffset.x = mouseX - selectionX;
-                    mouseOffset.y = mouseY - selectionY;
-                    
-                    canvas.style.cursor = 'move';
-                } else {
-                    // Start new selection
-                    cropStart.x = mouseX;
-                    cropStart.y = mouseY;
-                    cropEnd.x = mouseX;
-                    cropEnd.y = mouseY;
-                    isDragging = true;
-                    canvas.style.cursor = 'crosshair';
-                }
-            });
-            
-            // Update crop selection or move selection
-            canvas.addEventListener('mousemove', (e) => {
-                if (currentTool !== 'crop') return;
-                
-                const rect = canvas.getBoundingClientRect();
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
-                
-                const mouseX = (e.clientX - rect.left) * scaleX;
-                const mouseY = (e.clientY - rect.top) * scaleY;
-                
-                if (isMovingSelection) {
-                    // Get current selection dimensions
-                    const currentX = Math.min(cropStart.x, cropEnd.x);
-                    const currentY = Math.min(cropStart.y, cropEnd.y);
-                    const currentWidth = Math.abs(cropEnd.x - cropStart.x);
-                    const currentHeight = Math.abs(cropEnd.y - cropStart.y);
-                    
-                    // Calculate new position with mouse as center
-                    const newX = mouseX - mouseOffset.x;
-                    const newY = mouseY - mouseOffset.y;
-                    
-                    // Calculate new cropStart and cropEnd based on new position
-                    if (cropStart.x < cropEnd.x && cropStart.y < cropEnd.y) {
-                        // Normal case: cropStart is top-left, cropEnd is bottom-right
-                        cropStart.x = newX;
-                        cropStart.y = newY;
-                        cropEnd.x = newX + currentWidth;
-                        cropEnd.y = newY + currentHeight;
-                    } else if (cropStart.x > cropEnd.x && cropStart.y < cropEnd.y) {
-                        // cropStart is top-right, cropEnd is bottom-left
-                        cropStart.x = newX + currentWidth;
-                        cropStart.y = newY;
-                        cropEnd.x = newX;
-                        cropEnd.y = newY + currentHeight;
-                    } else if (cropStart.x < cropEnd.x && cropStart.y > cropEnd.y) {
-                        // cropStart is bottom-left, cropEnd is top-right
-                        cropStart.x = newX;
-                        cropStart.y = newY + currentHeight;
-                        cropEnd.x = newX + currentWidth;
-                        cropEnd.y = newY;
-                    } else {
-                        // cropStart is bottom-right, cropEnd is top-left
-                        cropStart.x = newX + currentWidth;
-                        cropStart.y = newY + currentHeight;
-                        cropEnd.x = newX;
-                        cropEnd.y = newY;
-                    }
-                    
-                    // Constrain to canvas bounds
-                    const minX = Math.min(cropStart.x, cropEnd.x);
-                    const maxX = Math.max(cropStart.x, cropEnd.x);
-                    const minY = Math.min(cropStart.y, cropEnd.y);
-                    const maxY = Math.max(cropStart.y, cropEnd.y);
-                    
-                    // Apply constraints while maintaining the offset
-                    // First, calculate the current selection bounds
-                    const currentX2 = Math.min(cropStart.x, cropEnd.x);
-                    const currentY2 = Math.min(cropStart.y, cropEnd.y);
-                    const currentWidth2 = Math.abs(cropEnd.x - cropStart.x);
-                    const currentHeight2 = Math.abs(cropEnd.y - cropStart.y);
-                    
-                    // Calculate new position without constraints
-                    let targetX = mouseX - mouseOffset.x;
-                    let targetY = mouseY - mouseOffset.y;
-                    
-                    // Apply boundary constraints
-                    // Left boundary
-                    if (targetX < 0) {
-                        targetX = 0;
-                        // Update mouse offset to maintain relative position
-                        mouseOffset.x = mouseX - targetX;
-                    }
-                    
-                    // Right boundary
-                    if (targetX + currentWidth2 > canvas.width) {
-                        targetX = canvas.width - currentWidth2;
-                        // Update mouse offset to maintain relative position
-                        mouseOffset.x = mouseX - targetX;
-                    }
-                    
-                    // Top boundary
-                    if (targetY < 0) {
-                        targetY = 0;
-                        // Update mouse offset to maintain relative position
-                        mouseOffset.y = mouseY - targetY;
-                    }
-                    
-                    // Bottom boundary
-                    if (targetY + currentHeight2 > canvas.height) {
-                        targetY = canvas.height - currentHeight2;
-                        // Update mouse offset to maintain relative position
-                        mouseOffset.y = mouseY - targetY;
-                    }
-                    
-                    // Calculate the offset needed to stay within bounds
-                    const xOffset = targetX - currentX2;
-                    const yOffset = targetY - currentY2;
-                    
-                    // Apply offsets if needed
-                    if (xOffset !== 0 || yOffset !== 0) {
-                        // Update cropStart and cropEnd based on the new target position
-                        if (cropStart.x < cropEnd.x && cropStart.y < cropEnd.y) {
-                            // Normal case: cropStart is top-left, cropEnd is bottom-right
-                            cropStart.x = targetX;
-                            cropStart.y = targetY;
-                            cropEnd.x = targetX + currentWidth2;
-                            cropEnd.y = targetY + currentHeight2;
-                        } else if (cropStart.x > cropEnd.x && cropStart.y < cropEnd.y) {
-                            // cropStart is top-right, cropEnd is bottom-left
-                            cropStart.x = targetX + currentWidth2;
-                            cropStart.y = targetY;
-                            cropEnd.x = targetX;
-                            cropEnd.y = targetY + currentHeight2;
-                        } else if (cropStart.x < cropEnd.x && cropStart.y > cropEnd.y) {
-                            // cropStart is bottom-left, cropEnd is top-right
-                            cropStart.x = targetX;
-                            cropStart.y = targetY + currentHeight2;
-                            cropEnd.x = targetX + currentWidth2;
-                            cropEnd.y = targetY;
-                        } else {
-                            // cropStart is bottom-right, cropEnd is top-left
-                            cropStart.x = targetX + currentWidth2;
-                            cropStart.y = targetY + currentHeight2;
-                            cropEnd.x = targetX;
-                            cropEnd.y = targetY;
-                        }
-                        
-                        // Update mouse offset to maintain the same relative position
-                        mouseOffset.x += xOffset;
-                        mouseOffset.y += yOffset;
-                    }
-                    
-                    // Update last mouse position
-                    lastMousePos = { x: mouseX, y: mouseY };
-                    
-                    // Redraw selection
-                    draw裁剪Selection();
-                } else if (isDragging) {
-                    // Update crop selection with aspect ratio constraint
-                    let newX = mouseX;
-                    let newY = mouseY;
-                    
-                    // Get selected aspect ratio from active button
-                    const activeAspectBtn = document.querySelector('.aspect-btn.active');
-                    const aspectRatio = activeAspectBtn ? activeAspectBtn.dataset.ratio : 'free';
-                    
-                    // Apply aspect ratio constraint if not free
-                    if (aspectRatio !== 'free') {
-                        const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
-                        const ratio = widthRatio / heightRatio;
-                        
-                        // Calculate new dimensions based on aspect ratio
-                        const width = Math.abs(newX - cropStart.x);
-                        const height = width / ratio;
-                        
-                        // Determine if we're dragging horizontally or vertically
-                        const deltaX = Math.abs(newX - cropStart.x);
-                        const deltaY = Math.abs(newY - cropStart.y);
-                        
-                        if (deltaX > deltaY) {
-                            // Horizontal drag - adjust Y
-                            newY = cropStart.y + (newX > cropStart.x ? height : -height);
-                        } else {
-                            // Vertical drag - adjust X
-                            newX = cropStart.x + (newY > cropStart.y ? height * ratio : -height * ratio);
-                        }
-                    }
-                    
-                    // Constrain to canvas bounds
-                    newX = Math.max(0, Math.min(canvas.width, newX));
-                    newY = Math.max(0, Math.min(canvas.height, newY));
-                    
-                    cropEnd.x = newX;
-                    cropEnd.y = newY;
-                    
-                    draw裁剪Selection();
-                } else {
-                    // Update cursor based on mouse position
-                    const hasSelection = Math.abs(cropEnd.x - cropStart.x) > 5 && Math.abs(cropEnd.y - cropStart.y) > 5;
-                    if (hasSelection && isMouseInsideSelection(mouseX, mouseY)) {
-                        canvas.style.cursor = 'move';
-                    } else {
-                        canvas.style.cursor = 'crosshair';
-                    }
-                }
-            });
-            
-            // End crop selection or moving selection
-            canvas.addEventListener('mouseup', () => {
-                isDragging = false;
-                isMovingSelection = false;
-                
-                // Update cursor
-                const hasSelection = Math.abs(cropEnd.x - cropStart.x) > 5 && Math.abs(cropEnd.y - cropStart.y) > 5;
                 if (hasSelection) {
-                    canvas.style.cursor = 'move';
-                } else {
-                    canvas.style.cursor = 'crosshair';
+                    const rect = canvas.getBoundingClientRect();
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+                    
+                    const mouseX = (e.clientX - rect.left) * scaleX;
+                    const mouseY = (e.clientY - rect.top) * scaleY;
+                    
+                    // Check if mouse is inside existing selection
+                    const x = Math.min(cropStart.x, cropEnd.x);
+                    const y = Math.min(cropStart.y, cropEnd.y);
+                    const width = Math.abs(cropEnd.x - cropStart.x);
+                    const height = Math.abs(cropEnd.y - cropStart.y);
+                    
+                    if (mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= y + height) {
+                        // Click is inside selection, let selection handle the drag
+                        console.log('Click inside selection, letting selection handle drag');
+                        return;
+                    }
                 }
-            });
+                
+                // Start new selection
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                const mouseX = (e.clientX - rect.left) * scaleX;
+                const mouseY = (e.clientY - rect.top) * scaleY;
+                
+                console.log('Starting new selection at:', mouseX, mouseY);
+                
+                cropStart.x = mouseX;
+                cropStart.y = mouseY;
+                cropEnd.x = mouseX;
+                cropEnd.y = mouseY;
+                isCropDragging = true;
+                
+                canvas.style.cursor = 'crosshair';
+            }
+        }
+        
+        function handleCropMouseMove(e) {
+            if (currentTool !== 'crop' || !isCropDragging) return;
             
-            canvas.addEventListener('mouseleave', () => {
-                isDragging = false;
-                isMovingSelection = false;
-            });
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const mouseX = (e.clientX - rect.left) * scaleX;
+            const mouseY = (e.clientY - rect.top) * scaleY;
+            
+            // Get selected aspect ratio
+            const activeAspectBtn = document.querySelector('.aspect-btn.active');
+            const aspectRatio = activeAspectBtn ? activeAspectBtn.dataset.ratio : 'free';
+            
+            // Apply aspect ratio constraint if not free
+            if (aspectRatio !== 'free') {
+                const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
+                const ratio = widthRatio / heightRatio;
+                
+                // Calculate new dimensions based on aspect ratio
+                const width = Math.abs(mouseX - cropStart.x);
+                const height = width / ratio;
+                
+                // Determine if we're dragging horizontally or vertically
+                const deltaX = Math.abs(mouseX - cropStart.x);
+                const deltaY = Math.abs(mouseY - cropStart.y);
+                
+                if (deltaX > deltaY) {
+                    // Horizontal drag - adjust Y
+                    cropEnd.x = mouseX;
+                    cropEnd.y = cropStart.y + (mouseX > cropStart.x ? height : -height);
+                } else {
+                    // Vertical drag - adjust X
+                    cropEnd.y = mouseY;
+                    cropEnd.x = cropStart.x + (mouseY > cropStart.y ? height * ratio : -height * ratio);
+                }
+            } else {
+                // Free aspect ratio
+                cropEnd.x = mouseX;
+                cropEnd.y = mouseY;
+            }
+            
+            // Constrain to canvas bounds
+            cropEnd.x = Math.max(0, Math.min(canvas.width, cropEnd.x));
+            cropEnd.y = Math.max(0, Math.min(canvas.height, cropEnd.y));
+            
+            // Draw selection
+            draw裁剪Selection();
+        }
+        
+        function handleCropMouseUp() {
+            if (currentTool !== 'crop') return;
+            
+            if (isCropDragging) {
+                console.log('Crop mouse up - ending drag');
+                isCropDragging = false;
+            }
+            
+            // Update cursor
+            const hasSelection = Math.abs(cropEnd.x - cropStart.x) > 5 && Math.abs(cropEnd.y - cropStart.y) > 5;
+            if (hasSelection) {
+                canvas.style.cursor = 'default'; // Let CSS handle cursor based on element
+            } else {
+                canvas.style.cursor = 'crosshair';
+            }
+        }
+        
+        function handleCropMouseLeave() {
+            if (currentTool !== 'crop') return;
+            
+            isCropDragging = false;
+            canvas.style.cursor = 'crosshair';
         }
         
 
         
-        // Draw crop selection overlay
+        // Enhanced Crop Selection with Visual Handles
         function draw裁剪Selection() {
+            if (!currentImage) return;
+            
             // Clear previous overlay
             canvasOverlay.innerHTML = '';
+            
+            // Check if we have a valid selection
+            const hasSelection = Math.abs(cropEnd.x - cropStart.x) > 5 && Math.abs(cropEnd.y - cropStart.y) > 5;
+            if (!hasSelection) return;
             
             // Calculate selection dimensions
             const x = Math.min(cropStart.x, cropEnd.x);
             const y = Math.min(cropStart.y, cropEnd.y);
             const width = Math.abs(cropEnd.x - cropStart.x);
             const height = Math.abs(cropEnd.y - cropStart.y);
+            
+            // Create main selection element
+            const selection = document.createElement('div');
+            selection.className = 'crop-selection';
+            selection.style.cssText = `
+                position: absolute;
+                left: ${x}px;
+                top: ${y}px;
+                width: ${width}px;
+                height: ${height}px;
+                border: 2px dashed #ffffff;
+                background-color: rgba(0, 0, 0, 0.3);
+                cursor: move;
+                user-select: none;
+                box-sizing: border-box;
+                z-index: 100;
+                pointer-events: auto;
+            `;
+            
+            // Add drag functionality to selection
+            selection.addEventListener('mousedown', function handleSelectionDrag(e) {
+                if (e.target.classList.contains('resize-handle')) return;
+                
+                e.preventDefault();
+                e.stopPropagation(); // Prevent canvas mousedown from firing
+                
+                console.log('Selection mousedown detected');
+                
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const startCropX = cropStart.x;
+                const startCropY = cropStart.y;
+                const startCropEndX = cropEnd.x;
+                const startCropEndY = cropEnd.y;
+                
+                function handleMouseMove(e) {
+                    e.preventDefault();
+                    const deltaX = e.clientX - startX;
+                    const deltaY = e.clientY - startY;
+                    
+                    cropStart.x = startCropX + deltaX;
+                    cropStart.y = startCropY + deltaY;
+                    cropEnd.x = startCropEndX + deltaX;
+                    cropEnd.y = startCropEndY + deltaY;
+                    
+                    // Constrain to canvas bounds
+                    if (cropStart.x < 0) {
+                        const offset = -cropStart.x;
+                        cropStart.x = 0;
+                        cropEnd.x += offset;
+                    }
+                    if (cropStart.y < 0) {
+                        const offset = -cropStart.y;
+                        cropStart.y = 0;
+                        cropEnd.y += offset;
+                    }
+                    if (cropEnd.x > canvas.width) {
+                        const offset = cropEnd.x - canvas.width;
+                        cropEnd.x = canvas.width;
+                        cropStart.x -= offset;
+                    }
+                    if (cropEnd.y > canvas.height) {
+                        const offset = cropEnd.y - canvas.height;
+                        cropEnd.y = canvas.height;
+                        cropStart.y -= offset;
+                    }
+                    
+                    draw裁剪Selection();
+                }
+                
+                function handleMouseUp() {
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                }
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+            });
+            
+            // Create resize handles (8 directions)
+            const handlePositions = [
+                { name: 'nw', cursor: 'nwse-resize', left: '-8px', top: '-8px' },
+                { name: 'n', cursor: 'ns-resize', left: '50%', top: '-8px', transform: 'translateX(-50%)' },
+                { name: 'ne', cursor: 'nesw-resize', right: '-8px', top: '-8px' },
+                { name: 'e', cursor: 'ew-resize', right: '-8px', top: '50%', transform: 'translateY(-50%)' },
+                { name: 'se', cursor: 'nwse-resize', right: '-8px', bottom: '-8px' },
+                { name: 's', cursor: 'ns-resize', left: '50%', bottom: '-8px', transform: 'translateX(-50%)' },
+                { name: 'sw', cursor: 'nesw-resize', left: '-8px', bottom: '-8px' },
+                { name: 'w', cursor: 'ew-resize', left: '-8px', top: '50%', transform: 'translateY(-50%)' }
+            ];
+            
+            handlePositions.forEach(pos => {
+                const handle = document.createElement('div');
+                handle.className = `resize-handle ${pos.name}`;
+                handle.dataset.handle = pos.name;
+                handle.style.cssText = `
+                    position: absolute;
+                    width: 16px;
+                    height: 16px;
+                    background-color: #ffffff;
+                    border: 2px solid #8B5CF6;
+                    border-radius: 50%;
+                    cursor: ${pos.cursor};
+                    z-index: 10;
+                    ${pos.left ? `left: ${pos.left};` : ''}
+                    ${pos.top ? `top: ${pos.top};` : ''}
+                    ${pos.right ? `right: ${pos.right};` : ''}
+                    ${pos.bottom ? `bottom: ${pos.bottom};` : ''}
+                    ${pos.transform ? `transform: ${pos.transform};` : ''}
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                    user-select: none;
+                `;
+                
+                // Add resize functionality to handle
+                handle.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation(); // Prevent canvas mousedown from firing
+                    
+                    const startX = e.clientX;
+                    const startY = e.clientY;
+                    const startCropX = cropStart.x;
+                    const startCropY = cropStart.y;
+                    const startCropEndX = cropEnd.x;
+                    const startCropEndY = cropEnd.y;
+                    const handleName = pos.name;
+                    
+                    function handleResizeMove(e) {
+                        const deltaX = e.clientX - startX;
+                        const deltaY = e.clientY - startY;
+                        
+                        // Handle each resize direction
+                        switch (handleName) {
+                            case 'nw':
+                                cropStart.x = startCropX + deltaX;
+                                cropStart.y = startCropY + deltaY;
+                                break;
+                            case 'n':
+                                cropStart.y = startCropY + deltaY;
+                                break;
+                            case 'ne':
+                                cropEnd.x = startCropEndX + deltaX;
+                                cropStart.y = startCropY + deltaY;
+                                break;
+                            case 'e':
+                                cropEnd.x = startCropEndX + deltaX;
+                                break;
+                            case 'se':
+                                cropEnd.x = startCropEndX + deltaX;
+                                cropEnd.y = startCropEndY + deltaY;
+                                break;
+                            case 's':
+                                cropEnd.y = startCropEndY + deltaY;
+                                break;
+                            case 'sw':
+                                cropStart.x = startCropX + deltaX;
+                                cropEnd.y = startCropEndY + deltaY;
+                                break;
+                            case 'w':
+                                cropStart.x = startCropX + deltaX;
+                                break;
+                        }
+                        
+                        // Constrain to minimum size (20px)
+                        const minSize = 20;
+                        if (cropEnd.x - cropStart.x < minSize) {
+                            if (handleName === 'w' || handleName === 'nw' || handleName === 'sw') {
+                                cropStart.x = cropEnd.x - minSize;
+                            } else {
+                                cropEnd.x = cropStart.x + minSize;
+                            }
+                        }
+                        if (cropEnd.y - cropStart.y < minSize) {
+                            if (handleName === 'n' || handleName === 'nw' || handleName === 'ne') {
+                                cropStart.y = cropEnd.y - minSize;
+                            } else {
+                                cropEnd.y = cropStart.y + minSize;
+                            }
+                        }
+                        
+                        // Constrain to canvas bounds
+                        cropStart.x = Math.max(0, cropStart.x);
+                        cropStart.y = Math.max(0, cropStart.y);
+                        cropEnd.x = Math.min(canvas.width, cropEnd.x);
+                        cropEnd.y = Math.min(canvas.height, cropEnd.y);
+                        
+                        draw裁剪Selection();
+                    }
+                    
+                    function handleResizeUp() {
+                        document.removeEventListener('mousemove', handleResizeMove);
+                        document.removeEventListener('mouseup', handleResizeUp);
+                    }
+                    
+                    document.addEventListener('mousemove', handleResizeMove);
+                    document.addEventListener('mouseup', handleResizeUp);
+                });
+                
+                selection.appendChild(handle);
+            });
+            
+            // Add selection to overlay
+            canvasOverlay.appendChild(selection);
             
             // Get selected shape
             const activeShapeBtn = document.querySelector('[data-shape].active');
@@ -1222,22 +1336,16 @@
             canvas.style.cursor = 'default';
             canvasOverlay.innerHTML = '';
             
-            // Remove all crop-related event listeners
-            const events = ['mousedown', 'mousemove', 'mouseup', 'mouseleave'];
-            events.forEach(event => {
-                // Remove all listeners by using a temporary function
-                const tempListeners = canvas.eventListeners && canvas.eventListeners[event] || [];
-                tempListeners.forEach(listener => {
-                    if (listener.toString().includes('crop') || listener.toString().includes('裁剪')) {
-                        canvas.removeEventListener(event, listener);
-                    }
-                });
-            });
+            // Remove mouse event listeners
+            canvas.removeEventListener('mousedown', handleCropMouseDown);
+            canvas.removeEventListener('mousemove', handleCropMouseMove);
+            canvas.removeEventListener('mouseup', handleCropMouseUp);
+            canvas.removeEventListener('mouseleave', handleCropMouseLeave);
             
             // Reset crop variables
             cropStart = { x: 0, y: 0 };
             cropEnd = { x: 0, y: 0 };
-            isDragging = false;
+            isCropDragging = false;
         }
         
         // Move crop area to specific position
@@ -2508,12 +2616,50 @@
                 // Clear text objects
                 textObjects = [];
                 
+                // 重置 crop selection variables
+                cropStart = { x: 0, y: 0 };
+                cropEnd = { x: 0, y: 0 };
+                isDragging = false;
+                isMovingSelection = false;
+                isResizingSelection = false;
+                lastMousePos = { x: 0, y: 0 };
+                mouseOffset = { x: 0, y: 0 };
+                resizeHandle = null;
+                
+                // Clear canvas overlay
+                canvasOverlay.innerHTML = '';
+                
                 // Save to history
                 saveToHistory();
                 
                 // Hide properties panel
                 propertiesPanel.classList.add('hidden');
             }
+        }
+        
+        // Reset application to home state (no image uploaded)
+        function resetToHome() {
+            // Reset canvas and all states
+            resetCanvas();
+            
+            // Show drop area, hide canvas
+            dropArea.classList.remove('hidden');
+            canvasContainer.classList.add('hidden');
+            
+            // Disable save button
+            document.getElementById('saveImageBtn').disabled = true;
+            
+            // Clear any active tool
+            currentTool = 'none';
+            document.querySelectorAll('.tool-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Hide properties panel
+            propertiesPanel.classList.add('hidden');
+            
+            // Disable toolbar buttons
+            updateToolbarState(false);
         }
         
         // Redraw canvas with all elements
